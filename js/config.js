@@ -4,7 +4,7 @@
    на хостинге — на отдельный Cloudflare Worker.
    ============================================================ */
 
-const HOSTED_ORIGIN = window.__PULSE_API_ORIGIN || 'https://pulse-api.tidal-snapper.workers.dev';
+const HOSTED_ORIGIN = window.__PULSE_API_ORIGIN || 'https://pulse-api.keen-weather.workers.dev';
 
 export const API_BASE = (() => {
   const host = String(location.hostname || '');
