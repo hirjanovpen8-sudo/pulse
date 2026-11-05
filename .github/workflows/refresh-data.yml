@@ -1,0 +1,38 @@
+name: Обновить данные плеера
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build-data.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Собрать данные
+        run: node tools/build-data.mjs api
+
+      - name: Закоммитить
+        run: |
+          git config user.name "Pulse Bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add api
+          if git diff --staged --quiet; then
+            echo "Данные не изменились"
+          else
+            git commit -m "Данные обновлены $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

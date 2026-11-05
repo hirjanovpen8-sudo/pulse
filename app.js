@@ -6,9 +6,7 @@ console.log('[pulse] build', APP_BUILD);
    ============================================================ */
 
 import { esc, fmtTime, storage, icon, clamp, debounce } from './js/util.js';
-import { installApiShim } from './js/config.js';
-
-installApiShim();
+import { loadData, searchLocal, artistTracks, BASE_PATH } from './js/config.js';
 import { greeting, pageHead, trackRows, coverHtml } from './js/ui.js';
 import {
   initPlayer, playerOn, state, getTrack, isPlaying, getCurrentTime,
@@ -158,25 +156,11 @@ async function playNow(trackOrList, startIndex = 0, label = '') {
   }
   playTracks(valid, list.length > 1 ? startIndex : 0, label);
   if (valid.length === 1) {
-    fetch(`/api/related?id=${encodeURIComponent(start.id)}`)
-      .then((r) => (r.ok ? r.json() : { tracks: [] }))
+    loadWithRetry(`related?id=${encodeURIComponent(start.id)}`)
       .then((d) => appendTracks((d.tracks || []).filter((t) => t.id !== start.id)))
       .catch(() => {});
   }
-  // Страховка: у сервера метаданные всегда точнее — обновляем карточку фоново.
-  if (start.id) {
-    fetch(`/api/meta?id=${encodeURIComponent(start.id)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const meta = d && d.meta;
-        if (!meta || meta.id !== start.id) return;
-        const changed = meta.title !== start.title || meta.artist !== start.artist || meta.cover !== start.cover;
-        if (!changed) return;
-        Object.assign(start, meta);
-        if (lastTrack && lastTrack.id === start.id) renderTrack(start);
-      })
-      .catch(() => {});
-  }
+  // Метаданные уже приходят из статического каталога — отдельный запрос не нужен.
 }
 
 /** Жесткая проверка: отсекаем всё, что похоже на сборник или длиннее 10 минут. */
@@ -930,22 +914,58 @@ function renderHome(page) {
 }
 
 /**
- * Запрос JSON с повторами: мобильная сеть часто обрывает первую попытку,
- * а Worker отвечает дольше обычного при холодном старте.
+ * Запрос данных с повторами. Источник — статические JSON с GitHub Pages,
+ * с фолбэком на Worker. Мобильная сеть часто обрывает первую попытку.
  */
 async function loadWithRetry(path, attempts = 4) {
+  const name = String(path).replace(/^\/api\//, '').replace(/\.json.*$/, '').split('?')[0];
+  const query = new URLSearchParams(String(path).split('?')[1] || '');
+
   let lastError = null;
   for (let i = 0; i < attempts; i += 1) {
     try {
-      const controller = typeof AbortController === 'function' ? new AbortController() : null;
-      const timer = controller ? setTimeout(() => controller.abort(), 15000) : 0;
-      const response = await fetch(path, { cache: 'no-store', signal: controller ? controller.signal : undefined });
-      if (timer) clearTimeout(timer);
-      if (!response.ok) throw new Error(`http_${response.status}`);
-      return await response.json();
+      // Поиск обслуживаем локальным индексом: мгновенно и без сервера.
+      if (name === 'search') {
+        const q = query.get('q') || '';
+        const tracks = await searchLocal(q);
+        if (tracks.length) return { tracks };
+        throw new Error('empty_search');
+      }
+      if (name === 'artist') {
+        const tracks = await artistTracks(query.get('name') || '');
+        if (tracks.length) return { name: query.get('name'), count: tracks.length, tracks };
+        throw new Error('empty_artist');
+      }
+      if (name === 'wave') {
+        const data = await loadData('feed');
+        const pools = Object.values(data.pools || {}).flat();
+        const unique = [];
+        const seen = new Set();
+        for (const track of pools) {
+          if (!track || seen.has(track.id)) continue;
+          seen.add(track.id);
+          unique.push(track);
+        }
+        // Перемешиваем на клиенте: каждый заход — новая волна.
+        for (let k = unique.length - 1; k > 0; k -= 1) {
+          const j = Math.floor(Math.random() * (k + 1));
+          [unique[k], unique[j]] = [unique[j], unique[k]];
+        }
+        return { tracks: unique.slice(0, 30) };
+      }
+      if (name === 'related') {
+        // Микс строим из локального индекса по тому же исполнителю.
+        const id = query.get('id') || '';
+        const feed = await loadData('feed');
+        const source = (feed.index || []).find((t) => t.id === id);
+        const artist = source ? String(source.artist || '').toLowerCase() : '';
+        const similar = (feed.index || []).filter((t) => t.id !== id
+          && (artist ? String(t.artist || '').toLowerCase() === artist : true));
+        return { id, tracks: similar.slice(0, 25) };
+      }
+      return await loadData(name);
     } catch (err) {
       lastError = err;
-      // Пауза перед следующей попыткой: 400, 800, 1600 мс.
       await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
     }
   }
@@ -1123,8 +1143,8 @@ function boot() {
       return;
     }
     storage.set('pulse.searchHistory', [q, ...history].slice(0, 20));
-    fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      .then((r) => (r.ok ? r.json() : { tracks: [] }))
+    box.innerHTML = skeleton.rows(6);
+    loadWithRetry(`search?q=${encodeURIComponent(q)}`)
       .then((data) => {
         const tracks = Array.isArray(data.tracks) ? data.tracks.filter(isTrackValid) : [];
         if (!tracks.length) {
@@ -1289,8 +1309,7 @@ function boot() {
       const subtitle = page.querySelector('.page-subtitle');
       if (subtitle) subtitle.textContent = `${tracks.length} треков в каталоге`;
     };
-    fetch(`/api/artist?name=${encodeURIComponent(name)}`)
-      .then((r) => (r.ok ? r.json() : { tracks: [] }))
+    loadWithRetry(`artist?name=${encodeURIComponent(name)}`)
       .then((data) => {
         tracks = Array.isArray(data.tracks) ? data.tracks.filter(isTrackValid) : [];
         if (!tracks.length) {
@@ -1309,8 +1328,7 @@ function boot() {
       if (!tracks.length) return;
       const first = tracks[0];
       playNow(tracks, 0, `Микс: ${name}`);
-      fetch(`/api/related?id=${encodeURIComponent(first.id)}`)
-        .then((r) => (r.ok ? r.json() : { tracks: [] }))
+      loadWithRetry(`related?id=${encodeURIComponent(first.id)}`)
         .then((d) => appendTracks((d.tracks || []).filter((t) => t.id !== first.id)))
         .catch(() => {});
     });
