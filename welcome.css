@@ -1,0 +1,294 @@
+/* ============================================================
+   PULSE · стили приветственного экрана (вход через Google).
+   Изолированы префиксом .pw / #pulseWelcome.
+   ============================================================ */
+
+#pulseWelcome.pw {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+
+#pulseWelcome.pw.is-open {
+  opacity: 1;
+}
+
+html.pw-open body {
+  overflow: hidden;
+}
+
+.pw-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(90% 70% at 18% 12%, rgba(255, 214, 0, .22), transparent 62%),
+    radial-gradient(80% 70% at 86% 84%, rgba(120, 160, 255, .2), transparent 60%),
+    #0A0A0A;
+}
+
+.pw-card {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 34px 30px 26px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(20, 20, 22, .78);
+  backdrop-filter: blur(26px);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .55);
+  color: #F4F4F4;
+  text-align: center;
+}
+
+.pw-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #FFD600;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+.pw-brand svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+
+.pw-title {
+  margin: 6px 0 0;
+  font-size: clamp(21px, 2.6vw, 26px);
+  line-height: 1.24;
+  letter-spacing: -.02em;
+}
+
+.pw-sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, .62);
+  max-width: 34ch;
+}
+
+.pw-google {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  margin-top: 6px;
+}
+
+.pw-google__error {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, .5);
+}
+
+.pw-skip {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, .58);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .16s ease, background .16s ease;
+}
+
+.pw-skip:hover,
+.pw-skip:focus-visible {
+  color: #FFF;
+  background: rgba(255, 255, 255, .08);
+  outline: none;
+}
+
+.pw-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, .34);
+  max-width: 36ch;
+}
+
+@media (max-width: 480px) {
+  .pw-card {
+    padding: 26px 20px 20px;
+    border-radius: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pulseWelcome.pw {
+    transition: none;
+  }
+}
+
+/* ---------------- блок аккаунта в сайдбаре ---------------- */
+
+.pw-acct {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(127, 127, 127, .16);
+  background: rgba(127, 127, 127, .07);
+  font-size: 12.5px;
+  color: var(--text, #EDEDED);
+}
+
+.pw-acct__guest {
+  display: grid;
+  gap: 8px;
+}
+
+.pw-acct__title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pw-acct__hint {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-dim, rgba(255, 255, 255, .45));
+}
+
+.pw-acct__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 0;
+  background: var(--accent, #FFD600);
+  color: #0A0A0A;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .16s ease;
+}
+
+.pw-acct__btn:hover {
+  filter: brightness(1.08);
+}
+
+.pw-acct__btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pw-acct__user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.pw-acct__avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(145deg, #35363B, #22232A);
+  color: rgba(255, 255, 255, .8);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pw-acct__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pw-acct__who {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.pw-acct__name,
+.pw-acct__email {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pw-acct__name {
+  font-weight: 600;
+}
+
+.pw-acct__email {
+  font-size: 11px;
+  color: var(--text-dim, rgba(255, 255, 255, .45));
+}
+
+.pw-acct__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.pw-acct__stats div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, .1);
+}
+
+.pw-acct__stats dt {
+  color: var(--text-dim, rgba(255, 255, 255, .5));
+  font-size: 11px;
+}
+
+.pw-acct__stats dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-acct__wide {
+  grid-column: 1 / -1;
+}
+
+.pw-acct__logout {
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(127, 127, 127, .2);
+  background: transparent;
+  color: var(--text-dim, rgba(255, 255, 255, .6));
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+
+.pw-acct__logout:hover {
+  background: rgba(255, 77, 109, .12);
+  color: #FF6B85;
+}

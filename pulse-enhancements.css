@@ -1,0 +1,252 @@
+/* ============================================================
+   PULSE · UI-надстройка. Только новые классы, стили плеера
+   не переопределяются, кроме явно заданных улучшений ниже.
+   ============================================================ */
+
+/* ---------------- обрезка длинных названий ---------------- */
+
+.card-title,
+.card-sub,
+.row-title,
+.row-artist,
+.row-album,
+.player-title,
+.player-artist {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-title,
+.row-title,
+.player-title {
+  display: block;
+  max-width: 100%;
+}
+
+.player-title,
+.player-artist {
+  max-width: 100%;
+}
+
+/* ---------------- ховеры карточек ---------------- */
+
+.card {
+  transition: transform .22s ease, box-shadow .22s ease, background-color .22s ease;
+  border-radius: 14px;
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .38);
+}
+
+.card .card-cover {
+  transition: filter .22s ease;
+}
+
+.card:hover .card-cover {
+  filter: brightness(1.06);
+}
+
+.card:hover .card-title {
+  color: var(--text);
+}
+
+/* ---------------- заглушка битой обложки ---------------- */
+
+.pulse-cover-fallback {
+  display: none !important;
+}
+
+.pulse-cover-fallback-wrap {
+  position: relative;
+  background:
+    radial-gradient(120% 120% at 20% 0%, rgba(255, 255, 255, .14), transparent 58%),
+    linear-gradient(145deg, #232323 0%, #171717 48%, #0E0E0E 100%);
+  color: rgba(255, 255, 255, .42);
+}
+
+.pulse-cover-fallback-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V6l10-2v12'/%3E%3Ccircle cx='6.5' cy='18' r='2.5'/%3E%3Ccircle cx='16.5' cy='16' r='2.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 34% auto;
+  opacity: .85;
+}
+
+.card-cover.pulse-cover-fallback-wrap::after {
+  background-size: 26% auto;
+}
+
+.row-cover.pulse-cover-fallback-wrap::after {
+  background-size: 46% auto;
+}
+
+/* ---------------- плеер: прибит к низу ---------------- */
+
+.player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+}
+
+/* ---------------- контекстное меню ---------------- */
+
+.pulse-ctx {
+  position: fixed;
+  z-index: 300;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(18, 18, 18, .96);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  color: #F2F2F2;
+  font: inherit;
+  font-size: 13.5px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px) scale(.98);
+  transform-origin: top left;
+  transition: opacity .12s ease, transform .12s ease, visibility .12s;
+}
+
+.pulse-ctx.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.pulse-ctx__head {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  margin-bottom: 4px;
+}
+
+.pulse-ctx__title {
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulse-ctx__artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, .55);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pulse-ctx__list {
+  display: grid;
+  gap: 1px;
+}
+
+.pulse-ctx__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pulse-ctx__item:hover:not(:disabled),
+.pulse-ctx__item:focus-visible {
+  background: rgba(255, 255, 255, .09);
+  outline: none;
+}
+
+.pulse-ctx__item:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+.pulse-ctx__icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.pulse-ctx__icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------------- полка «Послушать ещё раз» ---------------- */
+
+.pulse-replay__row .row-time {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pulse-pin {
+  color: var(--accent, #FFD600);
+  font-size: 9px;
+}
+
+/* ---------------- лёгкий тост (без модульных зависимостей) ---------------- */
+
+.pulse-toast-lite {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--player-h, 96px) + 18px);
+  transform: translateX(-50%);
+  z-index: 320;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(24, 24, 24, .94);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #FFF;
+  font-size: 13px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+
+/* ---------------- мобильные правки ---------------- */
+
+@media (max-width: 720px) {
+  .pulse-ctx {
+    min-width: 220px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .card:hover,
+  .card:focus-visible {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card .card-cover,
+  .pulse-ctx {
+    transition: none;
+  }
+}

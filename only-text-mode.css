@@ -1,0 +1,757 @@
+/* ============================================================
+   PULSE · режим «Только текст».
+   Все стили изолированы префиксом .otm / #otmRoot.
+   Стандартный интерфейс не переопределяется — только скрывается
+   через html[data-view="text"].
+   ============================================================ */
+
+#otmRoot.otm {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  --otm-c1: #D9C7EE;
+  --otm-c2: #8E7AB8;
+  --otm-ink: #0B0E14;
+  --otm-ink-soft: rgba(11, 14, 20, .6);
+  --otm-card: rgba(255, 255, 255, .42);
+  --otm-card-border: rgba(255, 255, 255, .62);
+  --otm-dim: rgba(11, 14, 20, .34);
+  --otm-sung: rgba(11, 14, 20, .62);
+  --otm-pastel-a: #E7DDF6;
+  --otm-pastel-b: #C7DDF2;
+  --otm-pastel-c: #F6E5D2;
+  color: var(--otm-ink);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+#otmRoot.otm.is-open {
+  display: block;
+}
+
+/* Тёмная палитра для насыщенных обложек. */
+#otmRoot.otm.otm--dark {
+  --otm-card: rgba(255, 255, 255, .1);
+  --otm-card-border: rgba(255, 255, 255, .16);
+  --otm-dim: rgba(255, 255, 255, .34);
+  --otm-sung: rgba(255, 255, 255, .68);
+}
+
+/* Стандартный интерфейс прячем только в режиме текста. */
+html[data-view='text'] .app,
+html[data-view='text'] #player,
+html[data-view='text'] .toasts,
+html[data-view='text'] .debug-overlay {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[data-view='text'] body.otm-active {
+  overflow: hidden;
+}
+
+/* ---------------- динамический фон ---------------- */
+
+.otm-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 100% at 12% 0%, var(--otm-pastel-a), transparent 62%),
+    radial-gradient(110% 90% at 92% 10%, var(--otm-pastel-b), transparent 58%),
+    linear-gradient(160deg, var(--otm-pastel-c) 0%, var(--otm-pastel-a) 52%, var(--otm-pastel-b) 100%);
+  transition: background 1.1s ease;
+}
+
+.otm-bg__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: .62;
+  transition: background 1.2s ease, opacity .8s ease;
+  will-change: transform;
+}
+
+.otm-bg__blob--a {
+  width: 58vmax;
+  height: 58vmax;
+  left: -14vmax;
+  top: -20vmax;
+  background: var(--otm-c1);
+  animation: otm-drift-a 26s ease-in-out infinite alternate;
+}
+
+.otm-bg__blob--b {
+  width: 52vmax;
+  height: 52vmax;
+  right: -16vmax;
+  bottom: -18vmax;
+  background: var(--otm-c2);
+  opacity: .48;
+  animation: otm-drift-b 32s ease-in-out infinite alternate;
+}
+
+.otm-bg__grain {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 40%, rgba(0, 0, 0, .06));
+  pointer-events: none;
+}
+
+@keyframes otm-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+
+@keyframes otm-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-5vmax, -3vmax, 0) scale(1); }
+}
+
+/* ---------------- каркас ---------------- */
+
+.otm-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: clamp(14px, 2.4vw, 30px) clamp(16px, 3.4vw, 48px);
+  gap: clamp(12px, 1.8vw, 22px);
+}
+
+.otm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: none;
+}
+
+.otm-top__brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--otm-ink);
+}
+
+.otm-top__brand span {
+  font-weight: 500;
+  color: var(--otm-ink-soft);
+}
+
+.otm-top__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.otm-clock {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--otm-ink);
+  opacity: .78;
+  letter-spacing: .02em;
+}
+
+.otm-switch {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, .22);
+  background: rgba(255, 255, 255, .38);
+  color: var(--otm-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: background .18s ease, transform .18s ease;
+}
+
+.otm-switch:hover {
+  background: rgba(255, 255, 255, .72);
+  transform: translateY(-1px);
+}
+
+.otm-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(290px, 38%) minmax(0, 1fr);
+  gap: clamp(18px, 3.4vw, 56px);
+  align-items: stretch;
+}
+
+/* ---------------- левая колонка ---------------- */
+
+.otm-card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.6vw, 18px);
+  min-height: 0;
+  padding: clamp(14px, 1.8vw, 22px);
+  border-radius: 26px;
+  background: var(--otm-card);
+  border: 1px solid var(--otm-card-border);
+  box-shadow: 0 26px 70px rgba(20, 26, 38, .16);
+  backdrop-filter: blur(28px);
+}
+
+.otm-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #2A2F3A, #171A21);
+  box-shadow: 0 20px 48px rgba(16, 19, 26, .22);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 52vh;
+}
+
+.otm-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.otm-cover__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 64px;
+  color: rgba(255, 255, 255, .35);
+}
+
+.otm-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  flex: none;
+}
+
+.otm-meta__text {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.otm-title {
+  font-size: clamp(20px, 2.1vw, 30px);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -.02em;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.otm-artist {
+  font-size: clamp(13px, 1.1vw, 16px);
+  color: var(--otm-ink-soft);
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.otm-like {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(127, 127, 127, .2);
+  background: rgba(255, 255, 255, .34);
+  color: var(--otm-ink);
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, color .18s ease;
+}
+
+.otm-like svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  transition: fill .18s ease;
+}
+
+.otm-like:hover {
+  transform: scale(1.06);
+  background: rgba(255, 255, 255, .6);
+}
+
+.otm-like.is-liked {
+  background: #FF4D6D;
+  border-color: transparent;
+  color: #FFF;
+}
+
+.otm-like.is-liked svg {
+  fill: #FFF;
+  stroke: #FFF;
+}
+
+.otm-like:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+/* ---------------- таймлайн ---------------- */
+
+.otm-timeline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.otm-time {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--otm-ink-soft);
+  min-width: 36px;
+}
+
+.otm-time:last-child {
+  text-align: right;
+}
+
+.otm-track {
+  position: relative;
+  flex: 1;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+}
+
+.otm-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, .26);
+}
+
+.otm-fill {
+  position: absolute;
+  left: 0;
+  height: 5px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--otm-ink);
+}
+
+.otm-knob {
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--otm-ink);
+  box-shadow: 0 2px 8px rgba(16, 19, 26, .3);
+  transition: transform .15s ease;
+}
+
+.otm-track:hover .otm-knob,
+.otm-track:focus-visible .otm-knob {
+  transform: scale(1.25);
+}
+
+/* ---------------- кнопки ---------------- */
+
+.otm-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.4vw, 16px);
+  flex: none;
+}
+
+.otm-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(127, 127, 127, .18);
+  background: rgba(255, 255, 255, .44);
+  color: var(--otm-ink);
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease;
+}
+
+.otm-btn:hover {
+  background: rgba(255, 255, 255, .8);
+  transform: translateY(-1px);
+}
+
+.otm-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.otm-btn--repeat svg {
+  fill: none;
+}
+
+.otm-btn--repeat.is-on {
+  background: var(--otm-ink);
+  color: var(--otm-card);
+  border-color: transparent;
+}
+
+.otm-btn--play {
+  width: 60px;
+  height: 60px;
+  border: 0;
+  background: var(--otm-ink);
+  color: var(--otm-card);
+  box-shadow: 0 14px 32px rgba(16, 19, 26, .26);
+}
+
+.otm-btn--play:hover {
+  background: var(--otm-ink);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.otm-btn--play svg {
+  width: 23px;
+  height: 23px;
+}
+
+.otm-btn--play .otm-icon-pause {
+  display: none;
+}
+
+.otm-btn--play.is-playing .otm-icon-play {
+  display: none;
+}
+
+.otm-btn--play.is-playing .otm-icon-pause {
+  display: block;
+}
+
+/* ---------------- громкость ---------------- */
+
+.otm-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding-top: 2px;
+}
+
+.otm-vol-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--otm-ink);
+  opacity: .78;
+  cursor: pointer;
+  transition: opacity .16s ease;
+}
+
+.otm-vol-btn:hover {
+  opacity: 1;
+}
+
+.otm-vol-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.otm-vol-btn .otm-vol-icon path:first-child {
+  fill: currentColor;
+}
+
+.otm-vol-btn .otm-vol-wave {
+  fill: none;
+}
+
+.otm-vol-muted {
+  display: none;
+  fill: currentColor;
+  stroke-width: 1.7;
+}
+
+.otm-vol-muted path {
+  fill: currentColor;
+}
+
+.otm-vol-muted path:last-child {
+  fill: none;
+}
+
+.otm.is-muted .otm-vol-icon {
+  display: none;
+}
+
+.otm.is-muted .otm-vol-muted {
+  display: block;
+}
+
+.otm-vol-track {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  touch-action: none;
+}
+
+.otm-vol-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, .26);
+}
+
+.otm-vol-fill {
+  position: absolute;
+  left: 0;
+  height: 4px;
+  width: 80%;
+  border-radius: 999px;
+  background: var(--otm-ink);
+  opacity: .82;
+}
+
+.otm-vol-knob {
+  position: absolute;
+  left: 80%;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  border-radius: 50%;
+  background: var(--otm-ink);
+  transition: transform .15s ease;
+}
+
+.otm-vol-track:hover .otm-vol-knob,
+.otm-vol-track:focus-visible .otm-vol-knob {
+  transform: scale(1.25);
+}
+
+/* ---------------- правая колонка: текст ---------------- */
+
+.otm-lyrics {
+  position: relative;
+  min-height: 0;
+  border-radius: 26px;
+  background: var(--otm-card);
+  border: 1px solid var(--otm-card-border);
+  backdrop-filter: blur(22px);
+  overflow: hidden;
+}
+
+.otm-lyrics__scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(28px, 22vh, 190px) clamp(18px, 2.6vw, 44px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(127, 127, 127, .3) transparent;
+  scroll-behavior: smooth;
+}
+
+.otm-lyrics__scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.otm-lyrics__scroll::-webkit-scrollbar-thumb {
+  background: rgba(127, 127, 127, .3);
+  border-radius: 999px;
+}
+
+.otm-lyrics__inner {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vh, 16px);
+}
+
+.otm-lyrics__fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 76px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.otm-lyrics__fade--top {
+  top: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .16), transparent);
+}
+
+.otm-lyrics__fade--bottom {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(255, 255, 255, .16), transparent);
+}
+
+/* ---------------- строки и слова ---------------- */
+
+.otm-line {
+  margin: 0;
+  font-size: clamp(17px, 1.75vw, 23px);
+  font-weight: 600;
+  line-height: 1.42;
+  letter-spacing: -.01em;
+  color: var(--otm-ink);
+  opacity: .38;
+  transform-origin: left center;
+  transition: opacity .34s ease, font-size .34s ease, transform .34s ease;
+  cursor: pointer;
+}
+
+.otm-line:not(.active):hover {
+  opacity: .62;
+}
+
+.otm-line.active {
+  font-size: clamp(23px, 2.5vw, 34px);
+  font-weight: 700;
+  line-height: 1.3;
+  opacity: 1;
+}
+
+.otm-line--plain {
+  font-size: clamp(15px, 1.35vw, 18px);
+  font-weight: 500;
+  line-height: 1.65;
+  opacity: .34;
+}
+
+.otm-line--plain.active {
+  font-size: clamp(18px, 1.75vw, 24px);
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Пословная подсветка. */
+.otm-word {
+  display: inline-block;
+  color: var(--otm-ink);
+  opacity: var(--otm-dim);
+  transition: opacity .18s ease, color .18s ease;
+}
+
+.otm-word.is-sung {
+  opacity: var(--otm-sung);
+}
+
+.otm-word.is-active {
+  opacity: 1;
+  color: var(--otm-ink);
+  text-shadow: 0 0 22px rgba(255, 255, 255, .32);
+}
+
+.otm-lyrics__hint {
+  margin: 0;
+  font-size: clamp(14px, 1.2vw, 17px);
+  color: var(--otm-ink-soft);
+  line-height: 1.6;
+  opacity: .62;
+}
+
+/* ---------------- адаптив ---------------- */
+
+@media (max-width: 900px) {
+  .otm-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .otm-card {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 20px;
+  }
+
+  .otm-cover {
+    width: 74px;
+    height: 74px;
+    max-height: none;
+    border-radius: 12px;
+    grid-row: 1 / span 2;
+  }
+
+  .otm-meta {
+    grid-column: 2;
+  }
+
+  .otm-like {
+    grid-column: 3;
+    width: 36px;
+    height: 36px;
+  }
+
+  .otm-timeline,
+  .otm-controls,
+  .otm-volume {
+    display: none;
+  }
+
+  .otm-lyrics__scroll {
+    padding: 90px 16px 40vh;
+  }
+
+  .otm-clock {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otm-bg__blob,
+  .otm-line,
+  .otm-word,
+  .otm-btn,
+  .otm-switch,
+  .otm-like {
+    animation: none;
+    transition: none;
+  }
+
+  .otm-lyrics__scroll {
+    scroll-behavior: auto;
+  }
+}
