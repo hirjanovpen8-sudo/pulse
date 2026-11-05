@@ -1,15 +1,16 @@
 ﻿/* ============================================================
-   PULSE В· РїСЂРёРІРµС‚СЃС‚РІРµРЅРЅС‹Р№ СЌРєСЂР°РЅ СЃ РІС…РѕРґРѕРј С‡РµСЂРµР· Google.
-   РџРѕРєР°Р·С‹РІР°РµС‚СЃСЏ РѕРґРёРЅ СЂР°Р· вЂ” РїРѕРєР° РІ localStorage РЅРµС‚ is_logged_in.
-   РСЃРїРѕР»СЊР·СѓРµС‚ РѕС„РёС†РёР°Р»СЊРЅСѓСЋ Р±РёР±Р»РёРѕС‚РµРєСѓ Google Identity Services.
+   PULSE · приветственный экран с входом через Google.
+   Показывается один раз — пока в localStorage нет is_logged_in.
+   Использует официальную библиотеку Google Identity Services.
    ============================================================ */
 
 const FLAG_KEY = 'is_logged_in';
 const PROFILE_KEY = 'pulse.profile';
-/* РџРѕРґСЃС‚Р°РІСЊС‚Рµ СЃРІРѕР№ OAuth Client ID РёР· Google Cloud Console.
-   РџРѕРєР° СЃС‚РѕРёС‚ Р·Р°РіР»СѓС€РєР° вЂ” РєРЅРѕРїРєР° Google РЅРµ РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ, РІС…РѕРґ С‚РѕР»СЊРєРѕ Р»РѕРєР°Р»СЊРЅС‹Р№. */
+/* Подставьте свой OAuth Client ID из Google Cloud Console.
+   Пока стоит заглушка — кнопка Google не показывается, вход локальный. */
 const CLIENT_ID = '1084552383103-example.apps.googleusercontent.com';
 const HAS_REAL_CLIENT = !/example\.apps\.googleusercontent\.com$/.test(CLIENT_ID);
+
 const ROOT_ID = 'pulseWelcome';
 
 let welcome = null;
@@ -26,7 +27,7 @@ function isLoggedIn() {
 function markLoggedIn() {
   try {
     localStorage.setItem(FLAG_KEY, 'true');
-  } catch { /* С…СЂР°РЅРёР»РёС‰Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ */ }
+  } catch { /* хранилище недоступно */ }
 }
 
 function readProfile() {
@@ -44,12 +45,14 @@ function logout() {
     localStorage.removeItem(PROFILE_KEY);
   } catch { /* ignore */ }
   const google = window.google;
-  try { if (google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); } catch { /* ignore */ }
+  try {
+    if (google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect();
+  } catch { /* ignore */ }
   renderAccount();
   document.dispatchEvent(new CustomEvent('pulse:auth-changed', { detail: { loggedIn: false } }));
-} 
+}
 
-/* РЎС‚Р°С‚РёСЃС‚РёРєР° Р°РєРєР°СѓРЅС‚Р° вЂ” РёР· С‚РµС… Р¶Рµ local-С…СЂР°РЅРёР»РёС‰, С‡С‚Рѕ Рё РїР»РµРµСЂ. */
+/* Статистика аккаунта — из тех же хранилищ, что и плеер. */
 function readStats() {
   const count = (key) => {
     try {
@@ -79,7 +82,7 @@ function escapeText(value) {
   return String(value == null ? '' : value).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 }
 
-/** Р‘Р»РѕРє Р°РєРєР°СѓРЅС‚Р° РІ СЃР°Р№РґР±Р°СЂРµ: РїСЂРѕС„РёР»СЊ, СЃС‚Р°С‚РёСЃС‚РёРєР°, РІС…РѕРґ/РІС‹С…РѕРґ. */
+/** Блок аккаунта в сайдбаре: профиль, статистика, вход/выход. */
 export function renderAccount() {
   const box = document.getElementById('pwAccount');
   if (!box) return;
@@ -90,18 +93,18 @@ export function renderAccount() {
   if (!loggedIn) {
     box.innerHTML = `
       <div class="pw-acct__guest">
-        <p class="pw-acct__title">Р’С‹ РЅРµ РІРѕС€Р»Рё</p>
-        <p class="pw-acct__hint">Р’РѕР№РґРёС‚Рµ, С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅСЏС‚СЊ Р»Р°Р№РєРё Рё РёСЃС‚РѕСЂРёСЋ РІ Р°РєРєР°СѓРЅС‚Рµ.</p>
+        <p class="pw-acct__title">Вы не вошли</p>
+        <p class="pw-acct__hint">Войдите, чтобы сохранять лайки и историю в аккаунте.</p>
         <button class="pw-acct__btn" type="button" data-pw="login">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-          Р’РѕР№С‚Рё РІ Р°РєРєР°СѓРЅС‚
+          Войти в аккаунт
         </button>
       </div>
     `;
     return;
   }
 
-  const name = (profile && (profile.name || profile.email)) || 'РђРєРєР°СѓРЅС‚ Google';
+  const name = (profile && (profile.name || profile.email)) || 'Аккаунт Google';
   const email = (profile && profile.email) || '';
   const picture = (profile && profile.picture) || '';
   const avatar = picture
@@ -117,13 +120,13 @@ export function renderAccount() {
       </div>
     </div>
     <dl class="pw-acct__stats">
-      <div><dt>Р›Р°Р№РєРё</dt><dd>${stats.likes}</dd></div>
-      <div><dt>Р•С‰С‘ СЂР°Р·</dt><dd>${stats.shelf}</dd></div>
-      <div><dt>Р‘РёР±Р»РёРѕС‚РµРєР°</dt><dd>${stats.library}</dd></div>
-      <div><dt>РЎР»СѓС€Р°Р»Рё</dt><dd>${stats.recent}</dd></div>
-      <div class="pw-acct__wide"><dt>РњРёРЅСѓС‚ РјСѓР·С‹РєРё</dt><dd>${stats.minutes}</dd></div>
+      <div><dt>Лайки</dt><dd>${stats.likes}</dd></div>
+      <div><dt>Ещё раз</dt><dd>${stats.shelf}</dd></div>
+      <div><dt>Библиотека</dt><dd>${stats.library}</dd></div>
+      <div><dt>Слушали</dt><dd>${stats.recent}</dd></div>
+      <div class="pw-acct__wide"><dt>Минут музыки</dt><dd>${stats.minutes}</dd></div>
     </dl>
-    <button class="pw-acct__logout" type="button" data-pw="logout">Р’С‹Р№С‚Рё РёР· Р°РєРєР°СѓРЅС‚Р°</button>
+    <button class="pw-acct__logout" type="button" data-pw="logout">Выйти из аккаунта</button>
   `;
 }
 
@@ -139,7 +142,6 @@ function bindAccount() {
       showWelcome();
     }
   });
-  // РЎС‚Р°С‚РёСЃС‚РёРєСѓ РѕР±РЅРѕРІР»СЏРµРј РїРѕСЃР»Рµ Р»СЋР±С‹С… РґРµР№СЃС‚РІРёР№ СЃ Р±РёР±Р»РёРѕС‚РµРєРѕР№.
   for (const name of ['pulse:liked-changed', 'pulse:shelf-changed', 'pulse:library-changed', 'pulse:auth-changed']) {
     document.addEventListener(name, () => window.setTimeout(renderAccount, 60));
   }
@@ -162,11 +164,13 @@ function decodeJwt(token) {
 function onCredential(response) {
   const profile = decodeJwt(response && response.credential);
   try {
-    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify({
-      name: profile.name || '',
-      email: profile.email || '',
-      picture: profile.picture || '',
-    }));
+    if (profile) {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify({
+        name: profile.name || '',
+        email: profile.email || '',
+        picture: profile.picture || '',
+      }));
+    }
   } catch { /* ignore */ }
   markLoggedIn();
   pendingLogin = false;
@@ -195,11 +199,11 @@ function buildWelcome() {
         </svg>
         <span>Pulse</span>
       </div>
-      <h1 class="pw-title" id="pwTitle">РњСѓР·С‹РєР°, РєРѕС‚РѕСЂР°СЏ РїРѕРјРЅРёС‚ С‚РІРѕР№ РІРєСѓСЃ</h1>
-      <p class="pw-sub">Р’РѕР№РґРёС‚Рµ, С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅСЏС‚СЊ Р»Р°Р№РєРё, РёСЃС‚РѕСЂРёСЋ Рё РІРѕР»РЅСѓ РЅР° РІСЃРµС… СѓСЃС‚СЂРѕР№СЃС‚РІР°С….</p>
+      <h1 class="pw-title" id="pwTitle">Музыка, которая помнит твой вкус</h1>
+      <p class="pw-sub">Войдите, чтобы сохранять лайки, историю и волну на всех устройствах.</p>
       <div class="pw-google" id="pwGoogle"></div>
-      <button class="pw-skip" type="button" id="pwSkip">РџСЂРѕРґРѕР»Р¶РёС‚СЊ Р±РµР· Р°РєРєР°СѓРЅС‚Р°</button>
-      <p class="pw-note">РњС‹ РЅРµ РїСѓР±Р»РёРєСѓРµРј РЅРёС‡РµРіРѕ РѕС‚ РІР°С€РµРіРѕ РёРјРµРЅРё. Р’С…РѕРґ РЅСѓР¶РµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ Р»РёС‡РЅРѕР№ Р±РёР±Р»РёРѕС‚РµРєРё.</p>
+      <button class="pw-skip" type="button" id="pwSkip">Продолжить без аккаунта</button>
+      <p class="pw-note">Мы не публикуем ничего от вашего имени. Вход нужен только для личной библиотеки.</p>
     </div>
   `;
   return el;
@@ -209,14 +213,13 @@ function renderGoogleButton() {
   const holder = document.getElementById('pwGoogle');
   if (!holder) return;
   if (!HAS_REAL_CLIENT) {
-    holder.innerHTML = '<button class="pw-local" type="button" id="pwLocal">РџСЂРѕРґРѕР»Р¶РёС‚СЊ Р±РµР· Р°РєРєР°СѓРЅС‚Р°</button>';
+    holder.innerHTML = '<button class="pw-local" type="button" id="pwLocal">Продолжить без аккаунта</button>';
     const local = document.getElementById('pwLocal');
     if (local) local.addEventListener('click', () => { hideWelcome(); });
     return;
   }
   const google = window.google;
   if (!google || !google.accounts || !google.accounts.id) {
-    // Р‘РёР±Р»РёРѕС‚РµРєР° РµС‰С‘ РіСЂСѓР·РёС‚СЃСЏ вЂ” РїРѕРІС‚РѕСЂСЏРµРј РїРѕРїС‹С‚РєСѓ.
     window.setTimeout(renderGoogleButton, 300);
     return;
   }
@@ -237,7 +240,7 @@ function renderGoogleButton() {
       width: 300,
     });
   } catch {
-    holder.innerHTML = '<span class="pw-google__error">Google-РІС…РѕРґ СЃРµР№С‡Р°СЃ РЅРµРґРѕСЃС‚СѓРїРµРЅ</span>';
+    holder.innerHTML = '<span class="pw-google__error">Google-вход сейчас недоступен</span>';
   }
 }
 
@@ -257,7 +260,6 @@ export function showWelcome() {
   document.documentElement.classList.add('pw-open');
   requestAnimationFrame(() => welcome && welcome.classList.add('is-open'));
   document.getElementById('pwSkip').addEventListener('click', () => {
-    // РџСЂРѕРїСѓСЃРє РЅРµ СЃС‚Р°РІРёС‚ С„Р»Р°Рі: СЌРєСЂР°РЅ РІРµСЂРЅС‘С‚СЃСЏ РїСЂРё СЃР»РµРґСѓСЋС‰РµРј Р·Р°С…РѕРґРµ.
     pendingLogin = false;
     hideWelcome();
   });

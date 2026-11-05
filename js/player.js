@@ -103,13 +103,23 @@ function ensurePlayerCreate() {
   const boot = () => {
     if (playerReady || player) return;
     /* Создаём плеер сразу с видео, если трек уже выбран. Контейнер обязан
-       находиться в зоне видимости, иначе YouTube отвечает ошибкой 150. */
+       находиться в зоне видимости, иначе YouTube отвечает ошибкой 150.
+       autoplay включаем, только если звук уже разрешён жестом:
+       на мобильных автозапуск без жеста блокируется браузером. */
     player = new YT.Player('ytHost', {
       width: 320,
       height: 180,
       videoId: pendingTrack ? pendingTrack.track.id : '',
       host: 'https://www.youtube.com',
-      playerVars: { enablejsapi: 1, origin: location.origin, autoplay: 1, controls: 0, disablekb: 1, playsinline: 1 },
+      playerVars: {
+        enablejsapi: 1,
+        origin: location.origin,
+        autoplay: window.__pulseAudioUnlocked ? 1 : 0,
+        controls: 0,
+        disablekb: 1,
+        playsinline: 1,
+        'webkit-playsinline': 1,
+      },
       events: {
         onReady: () => {
           try { player.setVolume(Math.round((state.settings.muted ? 0 : state.settings.volume) * 100)); } catch { /* ignore */ }
@@ -140,10 +150,51 @@ function ensurePlayerCreate() {
   }
 }
 
+function safePlay() {
+  try {
+    if (!player || !player.playVideo) return;
+    player.playVideo();
+  } catch { /* ignore */ }
+}
+
+/**
+ * Запускает воспроизведение с учётом мобильных ограничений.
+ * Если звук ещё не разрешён жестом, ставим видео на паузу и ждём
+ * первый тап — после него плеер сам продолжит.
+ */
+function playWhenAllowed(track) {
+  const start = () => {
+    // Жест получен: автоплей разрешён, поэтому запускаем сразу.
+    try {
+      player.loadVideoById(track.id);
+    } catch {
+      safePlay();
+    }
+    safePlay();
+  };
+
+  if (window.__pulseAudioUnlocked || !window.pulseWhenAudioAllowed) {
+    start();
+    return;
+  }
+
+  // Звук ещё заблокирован: готовим видео без автозапуска.
+  try {
+    player.cueVideoById(track.id);
+  } catch { /* ignore */ }
+  emit('buffering', { buffering: false });
+  if (window.pulseWhenAudioAllowed) window.pulseWhenAudioAllowed(() => {
+    if (currentTrack && currentTrack.id === track.id) start();
+  });
+}
+
 function loadTrack(track, autoplay) {
   try {
-    // loadVideoById автозапускает видео без пользовательского жеста (autoplay=1).
-    player.loadVideoById(track.id);
+    if (autoplay === false) {
+      player.cueVideoById(track.id);
+      return;
+    }
+    playWhenAllowed(track);
   } catch (err) {
     emit('error', { message: 'Плеер не запустился, попробуйте ещё раз', detail: String(err) });
   }
@@ -434,7 +485,13 @@ export function resume() {
     failed.delete(currentTrack.id);
     return startTrack(currentTrack);
   }
-  try { player.playVideo(); } catch { /* ignore */ }
+  // На мобильных вызываем запуск после жеста: resume() чаще всего
+  // дёргается из обработчика кнопки, так что это уже пользовательский жест.
+  if (window.pulseWhenAudioAllowed && !window.__pulseAudioUnlocked) {
+    window.pulseWhenAudioAllowed(() => safePlay());
+    // Пробуем и сразу — если браузер разрешит, звук пойдёт без задержки.
+  }
+  safePlay();
   playing = true;
   emit('state', { playing });
 }
