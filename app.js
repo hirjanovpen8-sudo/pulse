@@ -888,9 +888,12 @@ function renderHome(page) {
       bindRetry(chartBox);
     });
 
-  loadWithRetry('/api/search?q=' + encodeURIComponent('новинки музыки 2026'))
+  // Новинки берём из пула свежих треков (обновляется вместе с данными).
+  loadData('feed')
     .then((data) => {
-      const items = (data.tracks || []).filter(isTrackValid).slice(0, 10);
+      const pools = data.pools || {};
+      const fresh = [...(pools.mood_energy || []), ...(pools.pop || []), ...(pools.hiphop || [])];
+      const items = uniqById(fresh).filter(isTrackValid).slice(0, 10);
       if (!items.length) throw new Error('empty');
       fillRows(newBox, items, 'Новинки');
     })
@@ -970,6 +973,18 @@ async function loadWithRetry(path, attempts = 4) {
     }
   }
   throw lastError || new Error('failed');
+}
+
+/** Убирает дубли по id, сохраняя порядок. */
+function uniqById(list) {
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    if (!item || !item.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
 }
 
 /** Кнопка «Повторить» перерисовывает главную. */
