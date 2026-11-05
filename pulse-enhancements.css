@@ -250,3 +250,50 @@
     transition: none;
   }
 }
+
+/* ---------------- мобильный плеер: кнопка Play всегда доступна ---------------- */
+
+@media (max-width: 760px) {
+  /* В свёрнутой панели показываем кнопку Play и полосу прогресса. */
+  .player:not(.is-expanded) .player-center {
+    display: grid !important;
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .player:not(.is-expanded) .player-controls {
+    display: flex;
+    gap: 4px;
+  }
+
+  .player:not(.is-expanded) .player-controls .icon-btn:not(.play-btn) {
+    display: none;
+  }
+
+  .player:not(.is-expanded) .play-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .player:not(.is-expanded) .player-progress {
+    display: flex;
+    width: 100%;
+  }
+
+  .player:not(.is-expanded) .player-handle {
+    display: none;
+  }
+
+  :root {
+    --player-h: 72px;
+  }
+
+  .app {
+    padding-bottom: calc(var(--player-h) + 62px + env(safe-area-inset-bottom));
+  }
+}
