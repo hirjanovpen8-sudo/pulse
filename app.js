@@ -892,26 +892,30 @@ function renderHome(page) {
   const newBox = $('#newRows', page);
 
   // Три запроса идут параллельно: каждый блок рисуется сразу, как придут данные.
-  fetch('/api/chart')
-    .then((r) => (r.ok ? r.json() : { tracks: [] }))
+  // На нестабильной мобильной сети делаем несколько попыток.
+  loadWithRetry('/api/chart')
     .then((data) => {
       const items = (data.tracks || []).filter(isTrackValid).slice(0, 18);
       if (!items.length) throw new Error('empty');
       fillCards(chartBox, items, 'Чарт');
     })
-    .catch(() => { chartBox.innerHTML = '<p class="page-subtitle">Не удалось загрузить чарт</p>'; });
+    .catch(() => {
+      chartBox.innerHTML = '<div class="empty-state"><p class="empty-title">Не удалось загрузить чарт</p><button class="btn btn-secondary" type="button" data-retry="chart">Повторить</button></div>';
+      bindRetry(chartBox);
+    });
 
-  fetch('/api/search?q=' + encodeURIComponent('новинки музыки 2026'))
-    .then((r) => (r.ok ? r.json() : { tracks: [] }))
+  loadWithRetry('/api/search?q=' + encodeURIComponent('новинки музыки 2026'))
     .then((data) => {
       const items = (data.tracks || []).filter(isTrackValid).slice(0, 10);
       if (!items.length) throw new Error('empty');
       fillRows(newBox, items, 'Новинки');
     })
-    .catch(() => { newBox.innerHTML = '<p class="page-subtitle">Не удалось загрузить новинки</p>'; });
+    .catch(() => {
+      newBox.innerHTML = '<div class="empty-state"><p class="empty-title">Не удалось загрузить новинки</p><button class="btn btn-secondary" type="button" data-retry="new">Повторить</button></div>';
+      bindRetry(newBox);
+    });
 
-  fetch('/api/wave')
-    .then((r) => (r.ok ? r.json() : { tracks: [] }))
+  loadWithRetry('/api/wave')
     .then((data) => {
       const items = (data.tracks || []).filter(isTrackValid);
       if (!items.length) throw new Error('empty');
@@ -919,7 +923,44 @@ function renderHome(page) {
       const playAll = $('#homeWavePlay', page);
       if (playAll) playAll.addEventListener('click', () => playNow(items, 0, 'Моя волна'));
     })
-    .catch(() => { waveBox.innerHTML = '<p class="page-subtitle">Не удалось загрузить волну</p>'; });
+    .catch(() => {
+      waveBox.innerHTML = '<div class="empty-state"><p class="empty-title">Не удалось загрузить волну</p><button class="btn btn-secondary" type="button" data-retry="wave">Повторить</button></div>';
+      bindRetry(waveBox);
+    });
+}
+
+/**
+ * Запрос JSON с повторами: мобильная сеть часто обрывает первую попытку,
+ * а Worker отвечает дольше обычного при холодном старте.
+ */
+async function loadWithRetry(path, attempts = 4) {
+  let lastError = null;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const controller = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 15000) : 0;
+      const response = await fetch(path, { cache: 'no-store', signal: controller ? controller.signal : undefined });
+      if (timer) clearTimeout(timer);
+      if (!response.ok) throw new Error(`http_${response.status}`);
+      return await response.json();
+    } catch (err) {
+      lastError = err;
+      // Пауза перед следующей попыткой: 400, 800, 1600 мс.
+      await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
+    }
+  }
+  throw lastError || new Error('failed');
+}
+
+/** Кнопка «Повторить» перерисовывает главную. */
+function bindRetry(box) {
+  const button = box.querySelector('[data-retry]');
+  if (!button) return;
+  button.addEventListener('click', () => {
+    button.disabled = true;
+    button.textContent = 'Загружаем…';
+    if (typeof navigate === 'function') navigate();
+  });
 }
 
 function extractVideoId(value) {
