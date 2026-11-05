@@ -6,7 +6,10 @@
 
 const FLAG_KEY = 'is_logged_in';
 const PROFILE_KEY = 'pulse.profile';
+/* Подставьте свой OAuth Client ID из Google Cloud Console.
+   Пока стоит заглушка — кнопка Google не показывается, вход только локальный. */
 const CLIENT_ID = '1084552383103-example.apps.googleusercontent.com';
+const HAS_REAL_CLIENT = !/example\.apps\.googleusercontent\.com$/.test(CLIENT_ID);
 const ROOT_ID = 'pulseWelcome';
 
 let welcome = null;
@@ -205,6 +208,12 @@ function buildWelcome() {
 function renderGoogleButton() {
   const holder = document.getElementById('pwGoogle');
   if (!holder) return;
+  if (!HAS_REAL_CLIENT) {
+    holder.innerHTML = '<button class="pw-local" type="button" id="pwLocal">Продолжить без аккаунта</button>';
+    const local = document.getElementById('pwLocal');
+    if (local) local.addEventListener('click', () => { hideWelcome(); });
+    return;
+  }
   const google = window.google;
   if (!google || !google.accounts || !google.accounts.id) {
     // Библиотека ещё грузится — повторяем попытку.

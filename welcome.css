@@ -292,3 +292,20 @@ html.pw-open body {
   background: rgba(255, 77, 109, .12);
   color: #FF6B85;
 }
+
+/* Кнопка локального входа, пока не задан Google Client ID. */
+.pw-local {
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .08);
+  color: #FFF;
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background .16s ease;
+}
+
+.pw-local:hover {
+  background: rgba(255, 255, 255, .16);
+}
