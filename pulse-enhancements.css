@@ -254,7 +254,7 @@
 /* ---------------- мобильный плеер: кнопка Play всегда доступна ---------------- */
 
 @media (max-width: 760px) {
-  /* В свёрнутой панели показываем кнопку Play и полосу прогресса. */
+  /* В свёрнутой панели показываем строку управления с кнопкой Play. */
   .player:not(.is-expanded) .player-center {
     display: grid !important;
     grid-column: 1 / -1;
@@ -262,35 +262,51 @@
     align-items: center;
     gap: 10px;
     width: 100%;
+    order: 3;
   }
 
   .player:not(.is-expanded) .player-controls {
-    display: flex;
+    display: flex !important;
     gap: 4px;
   }
 
   .player:not(.is-expanded) .player-controls .icon-btn:not(.play-btn) {
-    display: none;
+    display: none !important;
   }
 
+  .player:not(.is-expanded) .player-controls .play-btn,
   .player:not(.is-expanded) .play-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    display: grid !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .player:not(.is-expanded) .player-progress {
-    display: flex;
+    display: flex !important;
     width: 100%;
+    margin: 0;
   }
 
   .player:not(.is-expanded) .player-handle {
-    display: none;
+    display: none !important;
   }
 
+  /* Панель выше, чтобы влезли кнопка и полоса прогресса. */
   :root {
-    --player-h: 72px;
+    --player-h: 78px;
+  }
+
+  .player:not(.is-expanded) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    height: var(--player-h);
+    padding: 6px 12px;
   }
 
   .app {
